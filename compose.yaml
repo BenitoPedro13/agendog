@@ -26,38 +26,6 @@ services:
       - production
 
   # ============================================
-  # Development Web Application (with hot reload)
-  # ============================================
-  web-app-dev:
-    image: node:23-alpine
-    container_name: agendog-web-app-dev
-    working_dir: /app
-    command: sh -c "corepack enable pnpm && pnpm install && pnpm --filter web-app dev"
-    ports:
-      - '3000:3000'
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/agendog
-      - NEXT_PUBLIC_API_URL=http://localhost:3000
-    volumes:
-      # Mount source code for hot reload
-      - ./apps/web-app:/app/apps/web-app
-      - ./packages:/app/packages
-      - ./package.json:/app/package.json
-      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
-      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml
-      # Use named volumes for node_modules to avoid conflicts
-      - web-app-node-modules:/app/node_modules
-      - web-app-app-node-modules:/app/apps/web-app/node_modules
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - agendog-network
-    profiles:
-      - development
-
-  # ============================================
   # PostgreSQL Database
   # ============================================
   db:
@@ -119,8 +87,4 @@ volumes:
   db-data:
     driver: local
   pgadmin-data:
-    driver: local
-  web-app-node-modules:
-    driver: local
-  web-app-app-node-modules:
     driver: local

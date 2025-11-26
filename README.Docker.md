@@ -1,324 +1,144 @@
-# Docker Setup Guide
+# Docker & Local Development Guide
 
-This guide explains how to use Docker with the Agendog monorepo for both development and production environments.
+This guide explains how to use Docker and local commands to run the Agendog stack. For local development, you will run the Next.js app directly on your machine for the best performance and hot-reloading experience, while the database and other services run in Docker containers.
 
 ## 📋 Table of Contents
 
-- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Development Workflow](#development-workflow)
+- [Production Workflow](#production-workflow)
 - [Available Scripts](#available-scripts)
 - [Services](#services)
-- [Profiles](#profiles)
 - [Environment Variables](#environment-variables)
-- [Troubleshooting](#troubleshooting)
+- [Connecting to the Database](#connecting-to-the-database)
 
-## 🚀 Quick Start
+## ✅ Prerequisites
 
-### Development Mode (with hot reload)
+- [Node.js](https://nodejs.org/en/) (v20+)
+- [pnpm](https://pnpm.io/installation) (v9+)
+- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
+
+## 🚀 Development Workflow
+
+This is the recommended workflow for local development.
+
+### Step 1: Start Backend Services with Docker
+
+First, start the PostgreSQL database and pgAdmin using Docker. These services are defined in the `development` profile.
 
 ```bash
-# Start development environment
+# Start the database and pgAdmin in the background
 pnpm docker:dev
-
-# Or with rebuild
-pnpm docker:dev:build
 ```
 
-This will start:
+This command will:
 
-- ✅ Next.js app with hot reload on `http://localhost:3000`
-- ✅ PostgreSQL database on `localhost:5432`
-- ✅ pgAdmin on `http://localhost:5050`
+- ✅ Start the PostgreSQL database, accessible on `localhost:5432`.
+- ✅ Start pgAdmin, a database management UI, accessible at `http://localhost:5050`.
 
-### Production Mode
+### Step 2: Run the Next.js App Locally
+
+In a separate terminal, install dependencies and run the Next.js development server on your host machine.
 
 ```bash
-# Build and start production environment
-pnpm docker:prod:build
+# Install all monorepo dependencies
+pnpm install
 
-# Or just start (if already built)
+# Start the Next.js app in development mode
+pnpm dev
+```
+
+Your application will be running at `http://localhost:3000` with hot-reloading enabled.
+
+### Step 3: Stop Development Services
+
+When you're finished, you can stop the Docker containers.
+
+```bash
+# Stop and remove the development containers and volumes
+pnpm docker:dev:down
+```
+
+## 🏭 Production Workflow
+
+To build and run the production version of the entire application stack with Docker, use the `production` profile.
+
+### Build and Run
+
+```bash
+# Build all images and start all services in detached mode
 pnpm docker:prod
 ```
 
-This will start:
+This will:
 
-- ✅ Next.js app (optimized build) on `http://localhost:3000`
-- ✅ PostgreSQL database on `localhost:5432`
+- ✅ Build a production-optimized Docker image for the Next.js app.
+- ✅ Start the Next.js app container.
+- ✅ Start the PostgreSQL database container.
+
+Your production application will be available at `http://localhost:3000`.
+
+### Stop Production Services
+
+```bash
+# Stop and remove the production containers and volumes
+pnpm docker:prod:down
+```
 
 ## 📜 Available Scripts
 
-### Development Scripts
-
-| Script       | Description                                |
-| ------------ | ------------------------------------------ |
-| `pnpm dev`   | Run Next.js dev server locally (no Docker) |
-| `pnpm build` | Build Next.js app locally                  |
-| `pnpm start` | Start Next.js production server locally    |
-
-### Docker Development Scripts
-
-| Script                  | Description                           |
-| ----------------------- | ------------------------------------- |
-| `pnpm docker:dev`       | Start dev environment with hot reload |
-| `pnpm docker:dev:build` | Rebuild and start dev environment     |
-| `pnpm docker:dev:down`  | Stop dev environment                  |
-
-### Docker Production Scripts
-
-| Script                   | Description                           |
-| ------------------------ | ------------------------------------- |
-| `pnpm docker:prod`       | Start production environment          |
-| `pnpm docker:prod:build` | Build and start production (detached) |
-| `pnpm docker:prod:down`  | Stop production environment           |
-
-### Docker Utility Scripts
-
-| Script                 | Description                                           |
-| ---------------------- | ----------------------------------------------------- |
-| `pnpm docker:stop`     | Stop all Docker services                              |
-| `pnpm docker:clean`    | Stop and remove all containers, volumes, and networks |
-| `pnpm docker:logs`     | View logs from all services                           |
-| `pnpm docker:logs:app` | View logs from web-app only                           |
-| `pnpm docker:logs:db`  | View logs from database only                          |
-
-### Database Scripts
-
-| Script          | Description                          |
-| --------------- | ------------------------------------ |
-| `pnpm db:start` | Start only the database              |
-| `pnpm db:stop`  | Stop the database                    |
-| `pnpm db:reset` | Reset database (⚠️ deletes all data) |
-| `pnpm db:shell` | Open PostgreSQL shell                |
-| `pnpm pgadmin`  | Start pgAdmin UI                     |
+| Script                  | Description                                                             |
+| :---------------------- | :---------------------------------------------------------------------- |
+| `pnpm dev`              | Starts the Next.js app locally (for development).                       |
+| `pnpm docker:dev`       | Starts backend services (db, pgAdmin) via Docker for local development. |
+| `pnpm docker:dev:down`  | Stops and removes development Docker services.                          |
+| `pnpm docker:prod`      | Builds and starts the entire production stack via Docker.               |
+| `pnpm docker:prod:down` | Stops and removes production Docker services.                           |
+| `pnpm docker:logs`      | Tails the logs of all running Docker containers.                        |
+| `pnpm db:shell`         | Opens a `psql` shell inside the running database container.             |
 
 ## 🔧 Services
 
-### Web App (Development)
+### Services (Docker - `development` profile)
 
-- **Container**: `agendog-web-app-dev`
-- **Port**: `3000`
-- **Features**:
-  - Hot reload enabled
-  - Source code mounted as volumes
-  - Automatic dependency installation
+- **`db` (PostgreSQL)**: The application database.
+- **`pgadmin`**: Database management UI.
 
-### Web App (Production)
+### Services (Docker - `production` profile)
 
-- **Container**: `agendog-web-app`
-- **Port**: `3000`
-- **Features**:
-  - Optimized build
-  - Standalone mode
-  - Multi-stage Docker build
-
-### PostgreSQL Database
-
-- **Container**: `agendog-db`
-- **Port**: `5432`
-- **Credentials**:
-  - User: `postgres`
-  - Password: `postgres`
-  - Database: `agendog`
-- **Volume**: `db-data` (persists data between restarts)
-
-### pgAdmin (Development Only)
-
-- **Container**: `agendog-pgadmin`
-- **Port**: `5050`
-- **URL**: `http://localhost:5050`
-- **Credentials**:
-  - Email: `admin@agendog.local`
-  - Password: `admin`
-
-#### Connecting to Database in pgAdmin
-
-1. Open `http://localhost:5050`
-2. Login with credentials above
-3. Add new server:
-   - **Name**: Agendog Local
-   - **Host**: `db` (not localhost!)
-   - **Port**: `5432`
-   - **Username**: `postgres`
-   - **Password**: `postgres`
-
-## 🎯 Profiles
-
-Docker Compose uses profiles to separate development and production environments:
-
-### Development Profile
-
-Includes:
-
-- `web-app-dev` (with hot reload)
-- `db` (PostgreSQL)
-- `pgadmin` (Database UI)
-
-### Production Profile
-
-Includes:
-
-- `web-app` (optimized build)
-- `db` (PostgreSQL)
+- **`web-app` (Next.js)**: The production-built Next.js application.
+- **`db` (PostgreSQL)**: The application database.
 
 ## 🌍 Environment Variables
 
-### Default Variables (in compose.yaml)
+Create a `.env` file in the root of the project to configure your application. The `web-app` service in `compose.yaml` is configured to use it.
+
+**Example `.env` for Local Development:**
+When running `pnpm dev`, your Next.js app needs to connect to the database running in Docker.
 
 ```env
-NODE_ENV=production|development
-DATABASE_URL=postgresql://postgres:postgres@db:5432/agendog
-NEXT_PUBLIC_API_URL=http://localhost:3000
+# .env
+
+# For Next.js running locally connecting to the Dockerized DB
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/agendog"
+
+# Public variables for the Next.js app
+NEXT_PUBLIC_API_URL="http://localhost:3000"
 ```
 
-### Custom Environment Variables
+## Connecting to the Database
 
-Create a `.env` file in the root directory:
+### From Local Next.js App
 
-```env
-# Database
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_secure_password
-POSTGRES_DB=agendog
+Ensure your `DATABASE_URL` in the `.env` file points to `localhost:5432`.
 
-# Next.js
-NEXT_PUBLIC_API_URL=http://localhost:3000
-DATABASE_URL=postgresql://postgres:your_secure_password@db:5432/agendog
+### Using pgAdmin
 
-# Add your custom variables here
-NEXT_PUBLIC_CUSTOM_VAR=value
-```
-
-Then update `compose.yaml` to use `env_file`:
-
-```yaml
-services:
-  web-app:
-    env_file:
-      - .env
-```
-
-## 🐛 Troubleshooting
-
-### Port Already in Use
-
-If you get "port already in use" errors:
-
-```bash
-# Check what's using the port
-lsof -i :3000  # or :5432, :5050
-
-# Stop all Docker containers
-pnpm docker:stop
-
-# Or kill the specific process
-kill -9 <PID>
-```
-
-### Database Connection Issues
-
-```bash
-# Check if database is healthy
-docker compose ps
-
-# View database logs
-pnpm docker:logs:db
-
-# Reset database
-pnpm db:reset
-```
-
-### Hot Reload Not Working (Development)
-
-```bash
-# Rebuild the development environment
-pnpm docker:dev:down
-pnpm docker:dev:build
-```
-
-### Clean Slate
-
-If everything is broken, start fresh:
-
-```bash
-# Remove all containers, volumes, and networks
-pnpm docker:clean
-
-# Remove Docker images
-docker rmi agendog-web-app:latest
-
-# Start fresh
-pnpm docker:dev:build
-```
-
-### Permission Issues (Linux/WSL)
-
-If you encounter permission issues with volumes:
-
-```bash
-# Fix ownership
-sudo chown -R $USER:$USER node_modules apps/web-app/node_modules
-```
-
-## 📦 Volume Management
-
-### List Volumes
-
-```bash
-docker volume ls | grep agendog
-```
-
-### Inspect Volume
-
-```bash
-docker volume inspect agendog_db-data
-```
-
-### Remove Specific Volume
-
-```bash
-docker volume rm agendog_db-data
-```
-
-## 🔍 Useful Commands
-
-### Execute Commands in Running Container
-
-```bash
-# Web app container
-docker compose exec web-app sh
-
-# Database container
-docker compose exec db sh
-
-# Run pnpm command in web-app
-docker compose exec web-app pnpm --filter web-app build
-```
-
-### View Resource Usage
-
-```bash
-docker stats
-```
-
-### Prune Unused Resources
-
-```bash
-# Remove unused containers, networks, images
-docker system prune -a
-
-# Remove unused volumes
-docker volume prune
-```
-
-## 🎓 Best Practices
-
-1. **Development**: Always use `pnpm docker:dev` for local development with hot reload
-2. **Production Testing**: Use `pnpm docker:prod:build` to test production builds locally
-3. **Database**: Use `pnpm db:start` if you only need the database running
-4. **Logs**: Use `pnpm docker:logs:app` to debug application issues
-5. **Clean Up**: Run `pnpm docker:clean` periodically to free up disk space
-
-## 📚 Additional Resources
-
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [Next.js Docker Documentation](https://nextjs.org/docs/deployment#docker-image)
-- [PostgreSQL Docker Hub](https://hub.docker.com/_/postgres)
+1. Open pgAdmin in your browser: `http://localhost:5050`.
+2. Log in with `admin@agendog.local` and password `admin`.
+3. Create a new server connection:
+   - **Host name/address**: `db` (this is the service name in `compose.yaml`)
+   - **Port**: `5432`
+   - **Username**: `postgres`
+   - **Password**: `postgres` (or as set in your `.env` file)
+   - Save the connection. You can now browse your database.
